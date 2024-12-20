@@ -15,7 +15,6 @@
 -- Mock out globals
 local test = require "integration_test"
 local zigbee_test_utils = require "integration_test.zigbee_test_utils"
-local base64 = require "st.base64"
 local t_utils = require "integration_test.utils"
 
 local clusters = require "st.zigbee.zcl.clusters"
@@ -437,70 +436,107 @@ test.register_coroutine_test(
   end
 )
 
-test.register_message_test(
-    "Setting all user codes should result in a code set event for each",
-    {
-      {
-        channel = "capability",
-        direction = "receive",
-        message = {
-          mock_device.id,
-          {
-            capability = capabilities.lockCodes.ID,
-            command = "updateCodes",
-            args = {
-              {
-                code1 = "1234",
-                code2 = "2345",
-                code3 = "3456"
-              }
-            }
-          }
-        }
-      },
-      {
-        channel = "zigbee",
-        direction = "send",
-        message = {
-          mock_device.id,
-          DoorLock.server.commands.SetPINCode(mock_device,
-                                                 1,
-                                                 DoorLockUserStatus.OCCUPIED_ENABLED,
-                                                 DoorLockUserType.UNRESTRICTED,
-                                                 "1234"
-          )
-        }
-      },
-      {
-        channel = "zigbee",
-        direction = "send",
-        message = {
-          mock_device.id,
-          DoorLock.server.commands.SetPINCode(mock_device,
-                                                 2,
-                                                 DoorLockUserStatus.OCCUPIED_ENABLED,
-                                                 DoorLockUserType.UNRESTRICTED,
-                                                 "2345"
-          )
-        }
-      },
-      {
-        channel = "zigbee",
-        direction = "send",
-        message = {
-          mock_device.id,
-          DoorLock.server.commands.SetPINCode(mock_device,
-                                                 3,
-                                                 DoorLockUserStatus.OCCUPIED_ENABLED,
-                                                 DoorLockUserType.UNRESTRICTED,
-                                                 "3456"
-          )
-        }
-      }
-    },
-    {
-      inner_block_ordering = "relaxed"
-    }
+test.register_coroutine_test(
+  "Calling updateCodes should send properly spaced commands",
+  function ()
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.socket.zigbee:__set_channel_ordering("relaxed")
+    test.socket.capability:__queue_receive({ mock_device.id, { capability = capabilities.lockCodes.ID, command = "updateCodes", args = {{code1 = "1234", code2 = "2345", code3 = "3456", code4 = ""}}}})
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.SetPINCode(mock_device,
+                                             1,
+                                             DoorLockUserStatus.OCCUPIED_ENABLED,
+                                             DoorLockUserType.UNRESTRICTED,
+                                             "1234"
+      )
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.SetPINCode(mock_device,
+                                             2,
+                                             DoorLockUserStatus.OCCUPIED_ENABLED,
+                                             DoorLockUserType.UNRESTRICTED,
+                                             "2345"
+      )
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.SetPINCode(mock_device,
+                                             3,
+                                             DoorLockUserStatus.OCCUPIED_ENABLED,
+                                             DoorLockUserType.UNRESTRICTED,
+                                             "3456"
+      )
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id, DoorLock.server.commands.ClearPINCode(mock_device, 4)
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.GetPINCode(mock_device, 1)
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.GetPINCode(mock_device, 2)
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.GetPINCode(mock_device, 3)
+    })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({
+      mock_device.id,
+      DoorLock.server.commands.GetPINCode(mock_device, 4)
+    })
+    test.wait_for_events()
+  end
+)
+
+test.register_coroutine_test(
+  "Setting all user codes should result in a code set event for each",
+  function ()
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.timer.__create_and_queue_test_time_advance_timer(2, "oneshot")
+    test.socket.zigbee:__set_channel_ordering("relaxed")
+    test.socket.capability:__queue_receive({ mock_device.id, { capability = capabilities.lockCodes.ID, command = "updateCodes", args = {{code1 = "1234", code2 = "2345", code3 = "3456", code4 = ""}}}})
+    test.socket.zigbee:__expect_send({mock_device.id, DoorLock.server.commands.SetPINCode(mock_device, 1, DoorLockUserStatus.OCCUPIED_ENABLED, DoorLockUserType.UNRESTRICTED, "1234")})
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({ mock_device.id, DoorLock.server.commands.GetPINCode(mock_device, 1) })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({mock_device.id, DoorLock.server.commands.SetPINCode(mock_device, 2, DoorLockUserStatus.OCCUPIED_ENABLED, DoorLockUserType.UNRESTRICTED, "2345")})
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({ mock_device.id, DoorLock.server.commands.GetPINCode(mock_device, 2) })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({mock_device.id, DoorLock.server.commands.SetPINCode(mock_device, 3, DoorLockUserStatus.OCCUPIED_ENABLED, DoorLockUserType.UNRESTRICTED, "3456")})
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({ mock_device.id, DoorLock.server.commands.GetPINCode(mock_device, 3) })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({ mock_device.id, DoorLock.server.commands.ClearPINCode(mock_device, 4) })
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__expect_send({ mock_device.id, DoorLock.server.commands.GetPINCode(mock_device, 4) })
+    test.wait_for_events()
+  end
 )
 
 test.register_message_test(
@@ -683,6 +719,69 @@ test.register_coroutine_test(
           )
       )
     end
+)
+
+test.register_coroutine_test(
+  "Lock state attribute reports (after the first) should be delayed if they come before event notifications ",
+  function()
+    init_code_slot(1, "Code 1", mock_device)
+    test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.lockCodes.lockCodes(json.encode({["1"] = "Code 1"}), { visibility = { displayed = false } })))
+    test.socket.zigbee:__queue_receive({mock_device.id, DoorLock.attributes.LockState:build_test_attr_report(mock_device, DoorLockState.UNLOCKED)})
+    test.socket.capability:__expect_send(
+      mock_device:generate_test_message("main",
+        capabilities.lock.lock.unlocked()
+      )
+    )
+    test.mock_time.advance_time(2)
+    test.socket.zigbee:__queue_receive(
+      {
+        mock_device.id,
+        DoorLock.client.commands.OperatingEventNotification.build_test_rx(
+            mock_device,
+            0x00, -- 0 = keypad
+            OperationEventCode.UNLOCK,
+            0x0001,
+            "1234",
+            0x0000,
+            ""
+        )
+      }
+    )
+    test.socket.capability:__expect_send(
+      mock_device:generate_test_message("main",
+        capabilities.lock.lock.unlocked({ data = { method = "keypad", codeId = "1", codeName = "Code 1" } })
+      )
+    )
+    test.mock_time.advance_time(2)
+    test.timer.__create_and_queue_test_time_advance_timer(2.5, "oneshot")
+    test.socket.zigbee:__queue_receive({mock_device.id, DoorLock.attributes.LockState:build_test_attr_report(mock_device, DoorLockState.LOCKED)})
+    test.socket.zigbee:__queue_receive(
+      {
+        mock_device.id,
+        DoorLock.client.commands.OperatingEventNotification.build_test_rx(
+            mock_device,
+            0x00, -- 0 = keypad
+            OperationEventCode.LOCK,
+            0x0001,
+            "1234",
+            0x0000,
+            ""
+        )
+      }
+    )
+    test.socket.capability:__expect_send(
+      mock_device:generate_test_message("main",
+        capabilities.lock.lock.locked({ data = { method = "keypad", codeId = "1", codeName = "Code 1" } })
+      )
+    )
+    test.mock_time.advance_time(2.5)
+    test.socket.capability:__expect_send(
+      mock_device:generate_test_message("main",
+        capabilities.lock.lock.locked()
+      )
+    )
+  end
 )
 
 test.run_registered_tests()

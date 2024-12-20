@@ -51,10 +51,11 @@ local set_code = function(driver, device, command)
       args = {command.args.codeSlot, command.args.codeName}
     })
   else
+    local user_type = command.args.codeSlot == 0 and UserTypeEnum.MASTER_USER or UserTypeEnum.UNRESTRICTED
     device:send(LockCluster.server.commands.SetPINCode(device,
             command.args.codeSlot,
             UserStatusEnum.OCCUPIED_ENABLED,
-            UserTypeEnum.UNRESTRICTED,
+            user_type,
             command.args.codePIN)
     )
     if (command.args.codeName ~= nil) then
@@ -68,30 +69,6 @@ local set_code = function(driver, device, command)
     device.thread:call_with_delay(4, function(d)
       device:send(LockCluster.server.commands.GetPINCode(device, command.args.codeSlot))
     end)
-  end
-end
-
-local update_codes = function(driver, device, command)
-  -- args.codes is json
-  for name, code in pairs(command.args.codes) do
-    -- these seem to come in the format "code[slot#]: code"
-    local code_slot = tonumber(string.gsub(name, "code", ""), 10)
-    if (code_slot ~= nil) then
-      if (code ~= nil and code ~= "0") then
-        device:send(LockCluster.server.commands.SetPINCode(device,
-                code_slot,
-                UserStatusEnum.OCCUPIED_ENABLED,
-                UserTypeEnum.UNRESTRICTED,
-                code)
-        )
-        device:send(LockCluster.server.commands.GetPINCode(device, code_slot))
-      else
-        device:send(LockCluster.client.commands.ClearPINCode(device, code_slot))
-        device.thread:call_with_delay(2, function(d)
-          device:send(LockCluster.server.commands.GetPINCode(device, code_slot))
-        end)
-      end
-    end
   end
 end
 
@@ -170,7 +147,6 @@ local yale_door_lock_driver = {
   },
   capability_handlers = {
     [LockCodes.ID] = {
-      [LockCodes.commands.updateCodes.NAME] = update_codes,
       [LockCodes.commands.reloadAllCodes.NAME] = reload_all_codes,
       [LockCodes.commands.setCode.NAME] = set_code
     }
